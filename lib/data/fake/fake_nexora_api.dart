@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_data.dart';
+import '../models/automation.dart';
 import '../models/consumption_area.dart';
 import '../models/device_sensor.dart';
 import '../models/incident.dart';
 
 class FakeNexoraApi {
+  /// Simulates persisting a new automation on the backend and returns the
+  /// stored record. The wizard awaits this when the user taps "Save".
+  Future<Automation> createAutomation(Automation draft) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    return draft;
+  }
+
   Future<AppData> getDashboardData() async {
     await Future.delayed(const Duration(milliseconds: 800));
 
@@ -103,6 +111,41 @@ class FakeNexoraApi {
         ConsumptionArea('Kitchen', 498),
         ConsumptionArea('Laundry', 412),
         ConsumptionArea('Secondary bathroom', 313),
+      ],
+      automations: [
+        Automation(
+          name: 'Vacation Mode · Eco',
+          trigger: TriggerType.location,
+          action: ActionType.controlDevice,
+          timerMinutes: 15,
+          onlyWhenNobodyHome: true,
+        ),
+        Automation(
+          name: 'Night Lights Off',
+          trigger: TriggerType.schedule,
+          action: ActionType.controlDevice,
+          timerMinutes: 30,
+        ),
+        Automation(
+          name: 'Leak Auto Shutoff',
+          trigger: TriggerType.sensorValue,
+          action: ActionType.securityUpdate,
+          timerMinutes: 5,
+          notifyOnRun: true,
+        ),
+        Automation(
+          name: 'Away Climate Eco',
+          trigger: TriggerType.location,
+          action: ActionType.adjustClimate,
+          timerMinutes: 60,
+          onlyWhenNobodyHome: true,
+        ),
+        Automation(
+          name: 'Goodnight Scene',
+          trigger: TriggerType.manual,
+          action: ActionType.activateScene,
+          timerMinutes: 10,
+        ),
       ],
     );
   }

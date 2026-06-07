@@ -7,8 +7,9 @@ import '../../code/widgets/top_bar.dart';
 import '../../code/widgets/white_card.dart';
 import '../../data/models/app_data.dart';
 import '../../data/models/device_sensor.dart';
+import '../automations/automations_page.dart';
 
-class DevicesPage extends StatelessWidget {
+class DevicesPage extends StatefulWidget {
   final AppData data;
 
   const DevicesPage({
@@ -17,7 +18,24 @@ class DevicesPage extends StatelessWidget {
   });
 
   @override
+  State<DevicesPage> createState() => _DevicesPageState();
+}
+
+class _DevicesPageState extends State<DevicesPage> {
+  Future<void> _openAutomations() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AutomationsPage(automations: widget.data.automations),
+      ),
+    );
+    // Toggles / new automations may have changed the active count.
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
+
     return Column(
       children: [
         const TopBar(
@@ -30,7 +48,11 @@ class DevicesPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _AutomationCard(),
+                _AutomationCard(
+                  activeCount:
+                      data.automations.where((a) => a.enabled).length,
+                  onTap: _openAutomations,
+                ),
                 const SizedBox(height: 20),
                 Row(
                   children: const [
@@ -70,67 +92,85 @@ class DevicesPage extends StatelessWidget {
 }
 
 class _AutomationCard extends StatelessWidget {
-  const _AutomationCard();
+  final int activeCount;
+  final VoidCallback onTap;
+
+  const _AutomationCard({
+    required this.activeCount,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return WhiteCard(
-      child: SizedBox(
-        height: 78,
-        child: Row(
-          children: [
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(left: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AUTOMATIONS',
-                      style: TextStyle(
-                        color: AppColors.muted,
-                        letterSpacing: 1.2,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      '5 Active',
-                      style: TextStyle(
-                        color: AppColors.blue,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          color: AppColors.orange,
-                          size: 7,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: WhiteCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'AUTOMATIONS',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          letterSpacing: 1.2,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                         ),
-                        SizedBox(width: 4),
-                        Text(
-                          'System optimizing energy usage',
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 12,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$activeCount Active',
+                        style: const TextStyle(
+                          color: AppColors.blue,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: AppColors.orange,
+                            size: 7,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'System optimizing energy usage',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.text,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              Icons.sensors_outlined,
-              size: 74,
-              color: AppColors.blue.withOpacity(0.08),
-            ),
-          ],
+              Icon(
+                Icons.sensors_outlined,
+                size: 74,
+                color: AppColors.blue.withOpacity(0.08),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.muted,
+              ),
+            ],
+          ),
         ),
       ),
     );

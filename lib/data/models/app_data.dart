@@ -1,3 +1,4 @@
+import 'automation.dart';
 import 'consumption_area.dart';
 import 'device_sensor.dart';
 import 'incident.dart';
@@ -14,6 +15,7 @@ class AppData {
   final List<Incident> incidents;
   final List<double> weeklyConsumption;
   final List<ConsumptionArea> consumptionAreas;
+  final List<Automation> automations;
 
   AppData({
     required this.userName,
@@ -27,5 +29,6 @@ class AppData {
     required this.incidents,
     required this.weeklyConsumption,
     required this.consumptionAreas,
+    required this.automations,
   });
 }

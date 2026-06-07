@@ -6,7 +6,9 @@ import '../../code/widgets/white_card.dart';
 import '../../data/models/app_data.dart';
 import '../../data/models/incident.dart';
 
-class AlertsPage extends StatelessWidget {
+enum _AlertFilter { all, active, solved }
+
+class AlertsPage extends StatefulWidget {
   final AppData data;
 
   const AlertsPage({
@@ -15,7 +17,34 @@ class AlertsPage extends StatelessWidget {
   });
 
   @override
+  State<AlertsPage> createState() => _AlertsPageState();
+}
+
+class _AlertsPageState extends State<AlertsPage> {
+  _AlertFilter _filter = _AlertFilter.all;
+
+  List<Incident> get _incidents => widget.data.incidents;
+
+  bool _isActive(Incident i) => i.level != IncidentLevel.solved;
+
+  int get _activeCount => _incidents.where(_isActive).length;
+  int get _solvedCount => _incidents.length - _activeCount;
+
+  List<Incident> get _filtered {
+    switch (_filter) {
+      case _AlertFilter.active:
+        return _incidents.where(_isActive).toList();
+      case _AlertFilter.solved:
+        return _incidents.where((i) => !_isActive(i)).toList();
+      case _AlertFilter.all:
+        return _incidents;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filtered = _filtered;
+
     return Column(
       children: [
         const TopBar(
@@ -55,29 +84,32 @@ class AlertsPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 26),
-                Row(
-                  children: const [
-                    Text(
-                      'All • 17',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _AlertTab(
+                        label: 'All • ${_incidents.length}',
+                        selected: _filter == _AlertFilter.all,
+                        onTap: () =>
+                            setState(() => _filter = _AlertFilter.all),
                       ),
-                    ),
-                    SizedBox(width: 30),
-                    Text(
-                      'Active • 6',
-                      style: TextStyle(
-                        color: AppColors.muted,
+                      const SizedBox(width: 30),
+                      _AlertTab(
+                        label: 'Active • $_activeCount',
+                        selected: _filter == _AlertFilter.active,
+                        onTap: () =>
+                            setState(() => _filter = _AlertFilter.active),
                       ),
-                    ),
-                    SizedBox(width: 30),
-                    Text(
-                      'Solved',
-                      style: TextStyle(
-                        color: AppColors.muted,
+                      const SizedBox(width: 30),
+                      _AlertTab(
+                        label: 'Solved • $_solvedCount',
+                        selected: _filter == _AlertFilter.solved,
+                        onTap: () =>
+                            setState(() => _filter = _AlertFilter.solved),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Divider(
@@ -86,7 +118,15 @@ class AlertsPage extends StatelessWidget {
                   thickness: 1,
                 ),
                 const SizedBox(height: 20),
-                ...data.incidents.map((incident) {
+                if (filtered.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 30),
+                    child: Text(
+                      'No incidents to show',
+                      style: TextStyle(color: AppColors.muted),
+                    ),
+                  ),
+                ...filtered.map((incident) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 14),
                     child: _IncidentCard(incident: incident),
@@ -97,6 +137,33 @@ class AlertsPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AlertTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AlertTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.text : AppColors.muted,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+        ),
+      ),
     );
   }
 }

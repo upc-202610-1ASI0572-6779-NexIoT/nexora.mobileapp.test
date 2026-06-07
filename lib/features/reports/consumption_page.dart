@@ -9,8 +9,9 @@ import '../../code/widgets/section_label.dart';
 import '../../code/widgets/top_bar.dart';
 import '../../code/widgets/white_card.dart';
 import '../../data/models/app_data.dart';
+import '../../data/models/consumption_view.dart';
 
-class ConsumptionPage extends StatelessWidget {
+class ConsumptionPage extends StatefulWidget {
   final AppData data;
 
   const ConsumptionPage({
@@ -19,10 +20,27 @@ class ConsumptionPage extends StatelessWidget {
   });
 
   @override
+  State<ConsumptionPage> createState() => _ConsumptionPageState();
+}
+
+class _ConsumptionPageState extends State<ConsumptionPage> {
+  ConsumptionMetric _metric = ConsumptionMetric.water;
+  ConsumptionRange _range = ConsumptionRange.week;
+
+  ConsumptionView get _view => widget.data.consumption[_metric]![_range]!;
+
+  String _areaLabel(double value) {
+    if (_metric == ConsumptionMetric.water) {
+      return '${value.toStringAsFixed(0)} ${_metric.areaUnit}';
+    }
+    return '${value.toStringAsFixed(1)} ${_metric.areaUnit}';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final maxLitres = data.consumptionAreas
-        .map((area) => area.litres)
-        .reduce(math.max);
+    final view = _view;
+    final maxValue =
+        view.areas.map((area) => area.value).reduce(math.max);
 
     return Column(
       children: [
@@ -35,59 +53,69 @@ class ConsumptionPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 24),
             child: Column(
               children: [
-                const _SegmentControl(),
+                _SegmentControl(
+                  metric: _metric,
+                  onChanged: (m) => setState(() => _metric = m),
+                ),
                 const SizedBox(height: 12),
-                Row(
-                  children: const [
-                    ChipLabel('Day'),
-                    SizedBox(width: 8),
-                    ChipLabel('Week', selected: true),
-                    SizedBox(width: 8),
-                    ChipLabel('Month'),
-                    SizedBox(width: 8),
-                    ChipLabel('Year'),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final range in ConsumptionRange.values) ...[
+                        ChipLabel(
+                          range.chip,
+                          selected: _range == range,
+                          onTap: () => setState(() => _range = range),
+                        ),
+                        if (range != ConsumptionRange.values.last)
+                          const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 WhiteCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'THIS WEEK',
-                        style: TextStyle(
+                      Text(
+                        _range.headline,
+                        style: const TextStyle(
                           color: AppColors.muted,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '⚠ High Usage Alert',
-                        style: TextStyle(
-                          color: AppColors.red,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                      if (view.highUsage) ...[
+                        const SizedBox(height: 4),
+                        const Text(
+                          '⚠ High Usage Alert',
+                          style: TextStyle(
+                            color: AppColors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 6),
-                      const Row(
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '1,847',
-                            style: TextStyle(
+                            view.totalLabel,
+                            style: const TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.w900,
                               color: AppColors.text,
                             ),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Padding(
-                            padding: EdgeInsets.only(bottom: 7),
+                            padding: const EdgeInsets.only(bottom: 7),
                             child: Text(
-                              'litres',
-                              style: TextStyle(
+                              view.unit,
+                              style: const TextStyle(
                                 color: AppColors.muted,
                               ),
                             ),
@@ -95,10 +123,11 @@ class ConsumptionPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        '↑ 14% vs last week',
+                      Text(
+                        view.deltaLabel,
                         style: TextStyle(
-                          color: AppColors.orange,
+                          color:
+                              view.increase ? AppColors.orange : AppColors.green,
                           fontSize: 12,
                         ),
                       ),
@@ -106,65 +135,23 @@ class ConsumptionPage extends StatelessWidget {
                       SizedBox(
                         height: 125,
                         child: LineChart(
-                          values: data.weeklyConsumption,
+                          values: view.series,
                           showGrid: true,
                           showLastDot: true,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'M',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
+                          for (final label in view.axisLabels)
+                            Text(
+                              label,
+                              style: const TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 11,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'T',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'W',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'T',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'F',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                            ),
-                          ),
-                          Text(
-                            'S',
-                            style: TextStyle(
-                              color: AppColors.blue,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            'S',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 11,
-                            ),
-                          ),
                         ],
                       ),
                     ],
@@ -179,8 +166,8 @@ class ConsumptionPage extends StatelessWidget {
                 WhiteCard(
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: Column(
-                    children: data.consumptionAreas.map((area) {
-                      final percent = area.litres / maxLitres;
+                    children: view.areas.map((area) {
+                      final percent = area.value / maxValue;
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 18),
@@ -197,7 +184,7 @@ class ConsumptionPage extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${area.litres} L',
+                                  _areaLabel(area.value),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -230,7 +217,13 @@ class ConsumptionPage extends StatelessWidget {
 }
 
 class _SegmentControl extends StatelessWidget {
-  const _SegmentControl();
+  final ConsumptionMetric metric;
+  final ValueChanged<ConsumptionMetric> onChanged;
+
+  const _SegmentControl({
+    required this.metric,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -243,55 +236,68 @@ class _SegmentControl extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.water_drop_outlined,
-                    size: 14,
-                    color: AppColors.blue,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Water',
-                    style: TextStyle(
-                      color: AppColors.blue,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _Segment(
+            icon: Icons.water_drop_outlined,
+            label: 'Water',
+            selected: metric == ConsumptionMetric.water,
+            onTap: () => onChanged(ConsumptionMetric.water),
           ),
-          const Expanded(
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.bolt,
-                    size: 14,
-                    color: AppColors.muted,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Electricity',
-                    style: TextStyle(
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          _Segment(
+            icon: Icons.bolt,
+            label: 'Electricity',
+            selected: metric == ConsumptionMetric.electricity,
+            onTap: () => onChanged(ConsumptionMetric.electricity),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _Segment({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? AppColors.blue : AppColors.muted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? AppColors.blue : AppColors.muted,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

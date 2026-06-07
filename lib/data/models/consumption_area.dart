@@ -1,9 +1,9 @@
 class ConsumptionArea {
   final String area;
-  final int litres;
+  final double value;
 
   ConsumptionArea(
       this.area,
-      this.litres,
+      this.value,
       );
 }

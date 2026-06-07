@@ -22,6 +22,9 @@ class DevicesPage extends StatefulWidget {
 }
 
 class _DevicesPageState extends State<DevicesPage> {
+  // null = "All".
+  String? _selectedRoom;
+
   Future<void> _openAutomations() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -32,9 +35,50 @@ class _DevicesPageState extends State<DevicesPage> {
     if (mounted) setState(() {});
   }
 
+  List<DeviceSensor> get _allDevices => [
+        ...widget.data.gasSensors,
+        ...widget.data.airQuality,
+        ...widget.data.humidity,
+      ];
+
+  /// Distinct rooms ordered by how many devices they contain (desc).
+  List<String> get _rooms {
+    final counts = <String, int>{};
+    for (final device in _allDevices) {
+      counts[device.room] = (counts[device.room] ?? 0) + 1;
+    }
+    final rooms = counts.keys.toList()
+      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    return rooms;
+  }
+
+  List<DeviceSensor> _filter(List<DeviceSensor> items) {
+    if (_selectedRoom == null) return items;
+    return items.where((d) => d.room == _selectedRoom).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
+
+    final sections = [
+      _DeviceSection(
+        title: 'GAS SENSOR',
+        icon: Icons.sensor_occupied_outlined,
+        items: _filter(data.gasSensors),
+        alertIcon: Icons.warning_rounded,
+      ),
+      _DeviceSection(
+        title: 'AIR QUALITY',
+        icon: Icons.air,
+        items: _filter(data.airQuality),
+      ),
+      _DeviceSection(
+        title: 'HUMIDITY',
+        icon: Icons.water_drop_outlined,
+        items: _filter(data.humidity),
+      ),
+    ].where((section) => section.items.isNotEmpty).toList();
 
     return Column(
       children: [
@@ -54,39 +98,74 @@ class _DevicesPageState extends State<DevicesPage> {
                   onTap: _openAutomations,
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: const [
-                    ChipLabel('All (12)', selected: true),
-                    SizedBox(width: 8),
-                    ChipLabel('Bedroom (4)'),
-                    SizedBox(width: 8),
-                    ChipLabel('Kitchen (3)'),
-                  ],
+                _RoomFilters(
+                  rooms: _rooms,
+                  total: _allDevices.length,
+                  countFor: (room) =>
+                      _allDevices.where((d) => d.room == room).length,
+                  selectedRoom: _selectedRoom,
+                  onSelect: (room) => setState(() => _selectedRoom = room),
                 ),
                 const SizedBox(height: 28),
-                _DeviceSection(
-                  title: 'GAS SENSOR',
-                  icon: Icons.sensor_occupied_outlined,
-                  items: data.gasSensors,
-                  alertIcon: Icons.warning_rounded,
-                ),
-                const SizedBox(height: 24),
-                _DeviceSection(
-                  title: 'AIR QUALITY',
-                  icon: Icons.air,
-                  items: data.airQuality,
-                ),
-                const SizedBox(height: 24),
-                _DeviceSection(
-                  title: 'HUMIDITY',
-                  icon: Icons.water_drop_outlined,
-                  items: data.humidity,
-                ),
+                for (var i = 0; i < sections.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 24),
+                  sections[i],
+                ],
+                if (sections.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(
+                      child: Text(
+                        'No devices in this room',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _RoomFilters extends StatelessWidget {
+  final List<String> rooms;
+  final int total;
+  final int Function(String room) countFor;
+  final String? selectedRoom;
+  final ValueChanged<String?> onSelect;
+
+  const _RoomFilters({
+    required this.rooms,
+    required this.total,
+    required this.countFor,
+    required this.selectedRoom,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ChipLabel(
+            'All ($total)',
+            selected: selectedRoom == null,
+            onTap: () => onSelect(null),
+          ),
+          for (final room in rooms) ...[
+            const SizedBox(width: 8),
+            ChipLabel(
+              '$room (${countFor(room)})',
+              selected: selectedRoom == room,
+              onTap: () => onSelect(room),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

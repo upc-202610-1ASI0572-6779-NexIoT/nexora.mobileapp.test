@@ -5,16 +5,18 @@ import '../theme/app_colors.dart';
 class ChipLabel extends StatelessWidget {
   final String text;
   final bool selected;
+  final VoidCallback? onTap;
 
   const ChipLabel(
       this.text, {
         super.key,
         this.selected = false,
+        this.onTap,
       });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 7,
@@ -34,6 +36,14 @@ class ChipLabel extends StatelessWidget {
           fontSize: 12,
         ),
       ),
+    );
+
+    if (onTap == null) return chip;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: chip,
     );
   }
 }

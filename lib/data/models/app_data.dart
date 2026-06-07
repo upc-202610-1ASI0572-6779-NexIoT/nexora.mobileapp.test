@@ -1,5 +1,5 @@
 import 'automation.dart';
-import 'consumption_area.dart';
+import 'consumption_view.dart';
 import 'device_sensor.dart';
 import 'incident.dart';
 
@@ -13,8 +13,8 @@ class AppData {
   final List<DeviceSensor> airQuality;
   final List<DeviceSensor> humidity;
   final List<Incident> incidents;
-  final List<double> weeklyConsumption;
-  final List<ConsumptionArea> consumptionAreas;
+  final Map<ConsumptionMetric, Map<ConsumptionRange, ConsumptionView>>
+      consumption;
   final List<Automation> automations;
 
   AppData({
@@ -27,8 +27,7 @@ class AppData {
     required this.airQuality,
     required this.humidity,
     required this.incidents,
-    required this.weeklyConsumption,
-    required this.consumptionAreas,
+    required this.consumption,
     required this.automations,
   });
 }
